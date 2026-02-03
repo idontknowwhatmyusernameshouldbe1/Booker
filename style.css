@@ -5,13 +5,13 @@
   --text: #e8ecf5;
   --muted: #a8b0c6;
   --line: rgba(255,255,255,0.10);
-  --accent: #6ea8fe;
-  --danger: #ff6b6b;
   --shadow: 0 10px 25px rgba(0,0,0,0.35);
+  --danger: #ff6b6b;
 }
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -45,7 +45,13 @@ h2 { margin: 0 0 10px 0; font-size: 18px; }
   align-items: end;
 }
 
-label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 13px; }
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
 
 input[type="text"], input[type="number"], input[type="search"] {
   background: var(--card2);
@@ -144,17 +150,8 @@ th.sortable:hover { color: var(--text); }
 .footer { padding-bottom: 28px; }
 
 /* API key UI */
-.keybox {
-  display: grid;
-  gap: 10px;
-}
-
-.keyrow {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
+.keybox { display: grid; gap: 10px; }
+.keyrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
 #apiKeyOutput {
   flex: 1;
@@ -169,5 +166,3 @@ th.sortable:hover { color: var(--text); }
   padding: 10px 12px;
   color: var(--text);
 }
-
-.keynote strong { color: var(--text); }
