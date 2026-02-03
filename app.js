@@ -1,5 +1,5 @@
-// Booker — simple local-first collection manager
-// Stores data in localStorage and can export/import JSON.
+// Booker — local-first book sorter + simple API key generator
+// Data stored in localStorage.
 
 const STORAGE_KEY = "booker.collection.v1";
 const API_KEY_STORAGE_KEY = "booker.api_key.v1";
@@ -17,19 +17,24 @@ const els = {
   clearAllBtn: document.getElementById("clearAllBtn"),
   countLabel: document.getElementById("countLabel"),
 
-  // API key UI
   genKeyBtn: document.getElementById("genKeyBtn"),
   clearKeyBtn: document.getElementById("clearKeyBtn"),
   copyKeyBtn: document.getElementById("copyKeyBtn"),
   apiKeyOutput: document.getElementById("apiKeyOutput"),
+  keyStatus: document.getElementById("keyStatus"),
 };
 
 let state = {
   items: loadItems(),
-  sort: { key: "number", dir: "asc" }, // asc | desc
+  sort: { key: "number", dir: "asc" },
   search: "",
   apiKey: loadApiKey(),
 };
+
+function setStatus(msg) {
+  if (!els.keyStatus) return;
+  els.keyStatus.textContent = msg || "";
+}
 
 function loadItems() {
   try {
@@ -49,7 +54,7 @@ function saveItems() {
 function loadApiKey() {
   try {
     const k = localStorage.getItem(API_KEY_STORAGE_KEY);
-    return k && typeof k === "string" ? k : "";
+    return (k && typeof k === "string") ? k : "";
   } catch {
     return "";
   }
@@ -61,6 +66,12 @@ function saveApiKey(key) {
 
 function clearApiKey() {
   localStorage.removeItem(API_KEY_STORAGE_KEY);
+}
+
+function renderKey() {
+  if (!els.apiKeyOutput || !els.copyKeyBtn) return;
+  els.apiKeyOutput.value = state.apiKey || "";
+  els.copyKeyBtn.disabled = !state.apiKey;
 }
 
 function normalizeText(s) {
@@ -85,7 +96,6 @@ function compareValues(a, b) {
 
 function getFilteredSortedItems() {
   const q = normalizeText(state.search);
-
   let items = state.items.slice();
 
   if (q) {
@@ -105,15 +115,13 @@ function getFilteredSortedItems() {
 }
 
 function updateCountLabel(count) {
+  if (!els.countLabel) return;
   els.countLabel.textContent = `${count} book${count === 1 ? "" : "s"}`;
 }
 
-function renderKey() {
-  els.apiKeyOutput.value = state.apiKey || "";
-  els.copyKeyBtn.disabled = !state.apiKey;
-}
-
 function render() {
+  if (!els.tbody) return;
+
   const items = getFilteredSortedItems();
   updateCountLabel(items.length);
 
@@ -161,11 +169,11 @@ function addItem({ number, title, year, notes }) {
   const trimmedTitle = (title ?? "").toString().trim();
   if (!trimmedTitle) return;
 
-  const numVal = number === "" || number === null || number === undefined ? null : Number(number);
-  const yearVal = year === "" || year === null || year === undefined ? null : Number(year);
+  const numVal = number === "" ? null : Number(number);
+  const yearVal = year === "" ? null : Number(year);
 
   const item = {
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+    id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())),
     number: Number.isFinite(numVal) ? numVal : null,
     title: trimmedTitle,
     year: Number.isFinite(yearVal) ? yearVal : null,
@@ -182,7 +190,6 @@ function exportJson() {
     app: "Booker",
     version: 1,
     exportedAt: new Date().toISOString(),
-    // include apiKey so your backup stays complete
     apiKey: state.apiKey || "",
     items: state.items,
   };
@@ -211,14 +218,13 @@ async function importJsonFile(file) {
   }
 
   const importedItems = Array.isArray(parsed) ? parsed : parsed?.items;
-
   if (!Array.isArray(importedItems)) {
     alert("JSON didn't contain a valid 'items' array.");
     return;
   }
 
   const cleaned = importedItems
-    .filter((x) => x && typeof x === "object" && (x.title || x.number || x.year || x.notes))
+    .filter((x) => x && typeof x === "object")
     .map((x) => ({
       id: x.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())),
       number: Number.isFinite(Number(x.number)) ? Number(x.number) : null,
@@ -234,21 +240,20 @@ async function importJsonFile(file) {
     return;
   }
 
-  const ok = confirm(
-    `Import ${cleaned.length} item(s)?\n\nOK = replace your current list\nCancel = do nothing`
-  );
+  const ok = confirm(`Import ${cleaned.length} item(s)?\n\nOK = replace your current list\nCancel = do nothing`);
   if (!ok) return;
 
   state.items = cleaned;
 
-  // If the imported JSON includes an apiKey, import it too
-  const importedKey = (parsed && typeof parsed === "object" && typeof parsed.apiKey === "string")
-    ? parsed.apiKey
-    : "";
+  const importedKey =
+    (parsed && typeof parsed === "object" && typeof parsed.apiKey === "string") ? parsed.apiKey : "";
 
   if (importedKey) {
     state.apiKey = importedKey;
     saveApiKey(importedKey);
+    setStatus("Imported API key from JSON.");
+  } else {
+    setStatus("Imported books. (No API key in JSON.)");
   }
 
   saveItems();
@@ -257,15 +262,18 @@ async function importJsonFile(file) {
 }
 
 /**
- * Generate a "special" API key.
- * Format: booker_<base64url>
+ * Generate a "special" API key
  * Uses cryptographically secure random bytes.
+ * Format: booker_<base64url>
  */
 function generateApiKey() {
+  if (!window.crypto || !crypto.getRandomValues) {
+    throw new Error("Secure random not available (crypto.getRandomValues missing).");
+  }
+
   const bytes = new Uint8Array(32); // 256-bit
   crypto.getRandomValues(bytes);
 
-  // Convert to base64url (safe for URLs and copy/paste)
   const b64 = btoa(String.fromCharCode(...bytes))
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
@@ -280,58 +288,68 @@ async function copyKeyToClipboard() {
 
   try {
     await navigator.clipboard.writeText(key);
-    els.copyKeyBtn.textContent = "Copied!";
-    setTimeout(() => (els.copyKeyBtn.textContent = "Copy"), 900);
+    if (els.copyKeyBtn) {
+      const old = els.copyKeyBtn.textContent;
+      els.copyKeyBtn.textContent = "Copied!";
+      setTimeout(() => (els.copyKeyBtn.textContent = old || "Copy"), 900);
+    }
+    setStatus("Copied key. You shoud save the key in notepad or smtn.");
   } catch {
-    // Fallback: select the input so user can Ctrl+C
-    els.apiKeyOutput.focus();
-    els.apiKeyOutput.select();
-    alert("Clipboard blocked. The key is selected—press Ctrl+C to copy.");
+    // Fallback: select input so user can Ctrl+C
+    if (els.apiKeyOutput) {
+      els.apiKeyOutput.focus();
+      els.apiKeyOutput.select();
+    }
+    alert("Clipboard blocked. The key is selected — press Ctrl+C to copy.");
+    setStatus("Clipboard blocked; key selected for Ctrl+C.");
   }
 }
 
-// Events
-els.form.addEventListener("submit", (e) => {
-  e.preventDefault();
-  addItem({
-    number: els.num.value,
-    title: els.title.value,
-    year: els.year.value,
-    notes: els.notes.value,
+/* -------------------- Wire up events -------------------- */
+
+if (els.form) {
+  els.form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    addItem({
+      number: els.num?.value ?? "",
+      title: els.title?.value ?? "",
+      year: els.year?.value ?? "",
+      notes: els.notes?.value ?? "",
+    });
+
+    if (els.num) els.num.value = "";
+    if (els.title) els.title.value = "";
+    if (els.year) els.year.value = "";
+    if (els.notes) els.notes.value = "";
+    els.title?.focus();
+
+    render();
   });
+}
 
-  els.num.value = "";
-  els.title.value = "";
-  els.year.value = "";
-  els.notes.value = "";
-  els.title.focus();
-
-  render();
-});
-
-els.search.addEventListener("input", (e) => {
+els.search?.addEventListener("input", (e) => {
   state.search = e.target.value ?? "";
   render();
 });
 
-els.exportBtn.addEventListener("click", exportJson);
+els.exportBtn?.addEventListener("click", exportJson);
 
-els.importInput.addEventListener("change", async (e) => {
+els.importInput?.addEventListener("change", async (e) => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
   await importJsonFile(file);
-  e.target.value = ""; // reset so importing same file again works
+  e.target.value = "";
 });
 
-els.clearAllBtn.addEventListener("click", () => {
+els.clearAllBtn?.addEventListener("click", () => {
   const ok = confirm("Clear ALL books from this browser? (This cannot be undone)");
   if (!ok) return;
   state.items = [];
   saveItems();
   render();
+  setStatus("");
 });
 
-// Click-to-sort headers
 document.querySelectorAll("th.sortable").forEach((th) => {
   th.addEventListener("click", () => {
     const key = th.getAttribute("data-sort");
@@ -347,32 +365,36 @@ document.querySelectorAll("th.sortable").forEach((th) => {
   });
 });
 
-// API key buttons
-els.genKeyBtn.addEventListener("click", () => {
-  const ok = confirm(
-    "Generate a new API key?\n\nIf you replace it, anything using the old key will stop working."
-  );
-  if (!ok) return;
+// API key actions
+els.genKeyBtn?.addEventListener("click", () => {
+  try {
+    // No confirm (removes the #1 cause of "nothing happened")
+    state.apiKey = generateApiKey();
+    saveApiKey(state.apiKey);
+    renderKey();
+    setStatus("Generated key. You shoud save the key in notepad or smtn.");
 
-  state.apiKey = generateApiKey();
-  saveApiKey(state.apiKey);
-  renderKey();
-
-  // Auto-copy to clipboard to make it easy
-  copyKeyToClipboard();
+    // Try to copy automatically (nice UX, fails gracefully)
+    copyKeyToClipboard();
+  } catch (err) {
+    alert(err?.message || "Failed to generate key.");
+    setStatus("Failed to generate key.");
+  }
 });
 
-els.clearKeyBtn.addEventListener("click", () => {
+els.clearKeyBtn?.addEventListener("click", () => {
   const ok = confirm("Clear the stored API key from this browser?");
   if (!ok) return;
 
   state.apiKey = "";
   clearApiKey();
   renderKey();
+  setStatus("Cleared key.");
 });
 
-els.copyKeyBtn.addEventListener("click", copyKeyToClipboard);
+els.copyKeyBtn?.addEventListener("click", copyKeyToClipboard);
 
-// Initial render
+/* -------------------- Initial render -------------------- */
 renderKey();
 render();
+setStatus(state.apiKey ? "Loaded existing key from this browser." : "");
