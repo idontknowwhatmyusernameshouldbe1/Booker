@@ -55,4 +55,73 @@
 
         <label class="span-2">
           Title
-          <input id="titleInput" type=
+          <input id="titleInput" type="text" maxlength="120" placeholder="e.g. Spökslottet" required />
+        </label>
+
+        <label>
+          Year
+          <input id="yearInput" type="number" min="1800" max="2200" step="1" placeholder="e.g. 1994" />
+        </label>
+
+        <label class="span-3">
+          Notes
+          <input id="notesInput" type="text" maxlength="200" placeholder="e.g. double issue / special cover" />
+        </label>
+
+        <div class="actions span-3">
+          <button type="submit" class="primary">Add</button>
+          <button type="button" id="clearAllBtn" class="danger" title="Deletes all saved books from this browser">
+            Clear all
+          </button>
+          <span class="hint">Auto-saves in this browser.</span>
+        </div>
+      </form>
+    </section>
+
+    <!-- TABLE CARD -->
+    <section class="card">
+      <div class="table-toolbar">
+        <div class="left">
+          <h2>Your collection</h2>
+          <p class="muted" id="countLabel">0 books</p>
+        </div>
+
+        <div class="right tools">
+          <input id="searchInput" type="search" placeholder="Search title/notes…" />
+          <button type="button" id="exportBtn">Export JSON</button>
+
+          <label class="filelike">
+            Import JSON
+            <input id="importInput" type="file" accept="application/json" />
+          </label>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-sort="number" class="sortable">#</th>
+              <th data-sort="title" class="sortable">Title</th>
+              <th data-sort="year" class="sortable">Year</th>
+              <th>Notes</th>
+              <th class="right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <p class="small muted">
+        Tip: click column headers to sort. Export makes a downloadable backup.
+      </p>
+    </section>
+  </main>
+
+  <footer class="wrap footer">
+    <span class="muted">Booker — simple, local-first list.</span>
+  </footer>
+
+  <script src="./app.js"></script>
+</body>
+</html>
