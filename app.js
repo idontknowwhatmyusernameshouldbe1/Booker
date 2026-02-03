@@ -2,6 +2,7 @@
 // Stores data in localStorage and can export/import JSON.
 
 const STORAGE_KEY = "booker.collection.v1";
+const API_KEY_STORAGE_KEY = "booker.api_key.v1";
 
 const els = {
   form: document.getElementById("bookForm"),
@@ -15,12 +16,19 @@ const els = {
   importInput: document.getElementById("importInput"),
   clearAllBtn: document.getElementById("clearAllBtn"),
   countLabel: document.getElementById("countLabel"),
+
+  // API key UI
+  genKeyBtn: document.getElementById("genKeyBtn"),
+  clearKeyBtn: document.getElementById("clearKeyBtn"),
+  copyKeyBtn: document.getElementById("copyKeyBtn"),
+  apiKeyOutput: document.getElementById("apiKeyOutput"),
 };
 
 let state = {
   items: loadItems(),
   sort: { key: "number", dir: "asc" }, // asc | desc
   search: "",
+  apiKey: loadApiKey(),
 };
 
 function loadItems() {
@@ -38,6 +46,23 @@ function saveItems() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.items));
 }
 
+function loadApiKey() {
+  try {
+    const k = localStorage.getItem(API_KEY_STORAGE_KEY);
+    return k && typeof k === "string" ? k : "";
+  } catch {
+    return "";
+  }
+}
+
+function saveApiKey(key) {
+  localStorage.setItem(API_KEY_STORAGE_KEY, key);
+}
+
+function clearApiKey() {
+  localStorage.removeItem(API_KEY_STORAGE_KEY);
+}
+
 function normalizeText(s) {
   return (s ?? "").toString().toLowerCase().trim();
 }
@@ -47,14 +72,12 @@ function compareValues(a, b) {
   if (a === null || a === undefined || a === "") return -1;
   if (b === null || b === undefined || b === "") return 1;
 
-  // numeric compare if both are numbers
   const an = Number(a), bn = Number(b);
   const aIsNum = Number.isFinite(an) && a !== "" && a !== null;
   const bIsNum = Number.isFinite(bn) && b !== "" && b !== null;
 
   if (aIsNum && bIsNum) return an < bn ? -1 : 1;
 
-  // fallback string compare
   const as = a.toString();
   const bs = b.toString();
   return as.localeCompare(bs, undefined, { numeric: true, sensitivity: "base" });
@@ -83,6 +106,11 @@ function getFilteredSortedItems() {
 
 function updateCountLabel(count) {
   els.countLabel.textContent = `${count} book${count === 1 ? "" : "s"}`;
+}
+
+function renderKey() {
+  els.apiKeyOutput.value = state.apiKey || "";
+  els.copyKeyBtn.disabled = !state.apiKey;
 }
 
 function render() {
@@ -154,6 +182,8 @@ function exportJson() {
     app: "Booker",
     version: 1,
     exportedAt: new Date().toISOString(),
+    // include apiKey so your backup stays complete
+    apiKey: state.apiKey || "",
     items: state.items,
   };
 
@@ -180,7 +210,6 @@ async function importJsonFile(file) {
     return;
   }
 
-  // Accept either a raw array OR our export format
   const importedItems = Array.isArray(parsed) ? parsed : parsed?.items;
 
   if (!Array.isArray(importedItems)) {
@@ -188,7 +217,6 @@ async function importJsonFile(file) {
     return;
   }
 
-  // Light validation + normalize
   const cleaned = importedItems
     .filter((x) => x && typeof x === "object" && (x.title || x.number || x.year || x.notes))
     .map((x) => ({
@@ -212,8 +240,54 @@ async function importJsonFile(file) {
   if (!ok) return;
 
   state.items = cleaned;
+
+  // If the imported JSON includes an apiKey, import it too
+  const importedKey = (parsed && typeof parsed === "object" && typeof parsed.apiKey === "string")
+    ? parsed.apiKey
+    : "";
+
+  if (importedKey) {
+    state.apiKey = importedKey;
+    saveApiKey(importedKey);
+  }
+
   saveItems();
+  renderKey();
   render();
+}
+
+/**
+ * Generate a "special" API key.
+ * Format: booker_<base64url>
+ * Uses cryptographically secure random bytes.
+ */
+function generateApiKey() {
+  const bytes = new Uint8Array(32); // 256-bit
+  crypto.getRandomValues(bytes);
+
+  // Convert to base64url (safe for URLs and copy/paste)
+  const b64 = btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+
+  return `booker_${b64}`;
+}
+
+async function copyKeyToClipboard() {
+  const key = state.apiKey;
+  if (!key) return;
+
+  try {
+    await navigator.clipboard.writeText(key);
+    els.copyKeyBtn.textContent = "Copied!";
+    setTimeout(() => (els.copyKeyBtn.textContent = "Copy"), 900);
+  } catch {
+    // Fallback: select the input so user can Ctrl+C
+    els.apiKeyOutput.focus();
+    els.apiKeyOutput.select();
+    alert("Clipboard blocked. The key is selected—press Ctrl+C to copy.");
+  }
 }
 
 // Events
@@ -273,5 +347,32 @@ document.querySelectorAll("th.sortable").forEach((th) => {
   });
 });
 
+// API key buttons
+els.genKeyBtn.addEventListener("click", () => {
+  const ok = confirm(
+    "Generate a new API key?\n\nIf you replace it, anything using the old key will stop working."
+  );
+  if (!ok) return;
+
+  state.apiKey = generateApiKey();
+  saveApiKey(state.apiKey);
+  renderKey();
+
+  // Auto-copy to clipboard to make it easy
+  copyKeyToClipboard();
+});
+
+els.clearKeyBtn.addEventListener("click", () => {
+  const ok = confirm("Clear the stored API key from this browser?");
+  if (!ok) return;
+
+  state.apiKey = "";
+  clearApiKey();
+  renderKey();
+});
+
+els.copyKeyBtn.addEventListener("click", copyKeyToClipboard);
+
 // Initial render
+renderKey();
 render();
