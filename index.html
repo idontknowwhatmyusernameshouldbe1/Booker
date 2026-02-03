@@ -15,6 +15,33 @@
   </header>
 
   <main class="wrap">
+    <!-- API KEY CARD -->
+    <section class="card">
+      <div class="table-toolbar">
+        <div class="left">
+          <h2>API Key</h2>
+          <p class="muted">Optional: generate a key for your own “API” style access later.</p>
+        </div>
+        <div class="right tools">
+          <button type="button" id="genKeyBtn" class="primary">Generate API Key</button>
+          <button type="button" id="clearKeyBtn" class="danger">Clear Key</button>
+        </div>
+      </div>
+
+      <div class="keybox">
+        <div class="keyrow">
+          <input id="apiKeyOutput" type="text" readonly placeholder="No key generated yet…" />
+          <button type="button" id="copyKeyBtn">Copy</button>
+        </div>
+
+        <div class="keynote">
+          <strong>Important:</strong> You shoud save the key in notepad or smtn.
+          If you lose it and clear your browser storage, you’ll need to generate a new one.
+        </div>
+      </div>
+    </section>
+
+    <!-- ADD BOOK CARD -->
     <section class="card">
       <h2>Add a book</h2>
 
@@ -49,6 +76,7 @@
       </form>
     </section>
 
+    <!-- TABLE CARD -->
     <section class="card">
       <div class="table-toolbar">
         <div class="left">
