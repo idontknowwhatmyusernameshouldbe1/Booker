@@ -46,6 +46,7 @@ h2 { margin: 0 0 10px 0; font-size: 18px; }
 }
 
 label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 13px; }
+
 input[type="text"], input[type="number"], input[type="search"] {
   background: var(--card2);
   color: var(--text);
@@ -54,7 +55,11 @@ input[type="text"], input[type="number"], input[type="search"] {
   padding: 10px 12px;
   outline: none;
 }
-input:focus { border-color: rgba(110,168,254,0.55); box-shadow: 0 0 0 3px rgba(110,168,254,0.12); }
+
+input:focus {
+  border-color: rgba(110,168,254,0.55);
+  box-shadow: 0 0 0 3px rgba(110,168,254,0.12);
+}
 
 .span-2 { grid-column: span 2; }
 .span-3 { grid-column: span 3; }
@@ -71,12 +76,14 @@ button, .filelike {
   cursor: pointer;
   user-select: none;
 }
+
 button:hover, .filelike:hover { border-color: rgba(255,255,255,0.20); }
 
 .primary {
   background: linear-gradient(180deg, rgba(110,168,254,0.25), rgba(110,168,254,0.08));
   border-color: rgba(110,168,254,0.35);
 }
+
 .danger {
   background: linear-gradient(180deg, rgba(255,107,107,0.22), rgba(255,107,107,0.08));
   border-color: rgba(255,107,107,0.35);
@@ -90,6 +97,7 @@ button:hover, .filelike:hover { border-color: rgba(255,255,255,0.20); }
   flex-wrap: wrap;
   margin-bottom: 10px;
 }
+
 .tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
 .filelike input[type="file"] { display: none; }
@@ -124,12 +132,6 @@ th {
 th.sortable { cursor: pointer; }
 th.sortable:hover { color: var(--text); }
 
-td .mini {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-}
-
 .right { text-align: right; }
 .muted { color: var(--muted); margin: 0; }
 .small { font-size: 12px; }
@@ -140,3 +142,32 @@ td .mini {
 }
 
 .footer { padding-bottom: 28px; }
+
+/* API key UI */
+.keybox {
+  display: grid;
+  gap: 10px;
+}
+
+.keyrow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#apiKeyOutput {
+  flex: 1;
+  min-width: 260px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.keynote {
+  border: 1px dashed rgba(110,168,254,0.35);
+  background: rgba(110,168,254,0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--text);
+}
+
+.keynote strong { color: var(--text); }
